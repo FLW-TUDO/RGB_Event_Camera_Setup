@@ -1,0 +1,75 @@
+<launch>
+  <!-- view:=false disables image_view windows (use when running headless / over SSH) -->
+  <arg name="view"           default="true"/>
+  <arg name="exposure_us"    default="5000"  doc="Event camera exposure (us)"/>
+  <arg name="rgb_exposure_us" default="20000" doc="RGB camera exposure (us), independent of event cameras"/>
+  <arg name="rgb_gain"        default="1.0"   doc="RGB camera gain (1.0–24.0)"/>
+  <arg name="rgb_gamma"       default="2.2"   doc="RGB camera gamma (1.0=linear/dark, 2.2=sRGB-like/natural)"/>
+
+  <!-- Set to false to skip cameras that are not plugged in -->
+  <arg name="rgb"       default="true"/>
+  <arg name="left_dvx"  default="true"/>
+  <arg name="right_dvx" default="true"/>
+
+  <!-- IDS RGB camera -->
+  <group if="$(arg rgb)">
+    <node name="rgb_cam" pkg="ids_cam_driver" type="ids.py" output="screen">
+      <param name="width"       value="640"/>
+      <param name="height"      value="480"/>
+      <param name="exposure_us" value="$(arg rgb_exposure_us)"/>
+      <param name="gain"        value="$(arg rgb_gain)"/>
+      <param name="gamma"       value="$(arg rgb_gamma)"/>
+    </node>
+
+    <node if="$(arg view)" name="rgb_image_view" pkg="image_view" type="image_view"
+          respawn="false" output="screen">
+      <remap from="image" to="/rgb/image_raw"/>
+      <param name="autosize" value="true"/>
+    </node>
+  </group>
+
+  <!-- Left DVXplorer (master clock) -->
+  <group if="$(arg left_dvx)">
+    <node ns="dvxplorer_left" name="dvxplorer_ros_driver"
+          pkg="dvxplorer_ros_driver" type="dvxplorer_ros_driver" output="screen">
+      <param name="serial_number"          type="str" value="DXA00420"/>
+      <param name="master"                 value="True"/>
+      <param name="reset_timestamps_delay" value="2.0"/>
+    </node>
+
+    <node name="dvs_renderer_left" pkg="dvs_renderer" type="dvs_renderer">
+      <param name="display_method" value="red-blue"/>
+      <remap from="events"        to="/dvxplorer_left/events"/>
+      <remap from="dvs_rendering" to="dvs_rendering_left"/>
+    </node>
+
+    <node if="$(arg view)" name="event_image_view_left" pkg="image_view" type="image_view"
+          respawn="false" output="screen">
+      <remap from="image" to="/dvs_rendering_left"/>
+      <param name="autosize" value="true"/>
+    </node>
+  </group>
+
+  <!-- Right DVXplorer (slave) — only launched if right_dvx:=true -->
+  <group if="$(arg right_dvx)">
+    <node ns="dvxplorer_right" name="dvxplorer_ros_driver"
+          pkg="dvxplorer_ros_driver" type="dvxplorer_ros_driver" output="screen">
+      <param name="serial_number" type="str" value="DXA00247"/>
+      <param name="master"        value="False"/>
+      <remap from="reset_timestamps" to="/dvxplorer_left/reset_timestamps"/>
+    </node>
+
+    <node name="dvs_renderer_right" pkg="dvs_renderer" type="dvs_renderer">
+      <param name="display_method" value="red-blue"/>
+      <remap from="events"        to="/dvxplorer_right/events"/>
+      <remap from="dvs_rendering" to="dvs_rendering_right"/>
+    </node>
+
+    <node if="$(arg view)" name="event_image_view_right" pkg="image_view" type="image_view"
+          respawn="false" output="screen">
+      <remap from="image" to="/dvs_rendering_right"/>
+      <param name="autosize" value="true"/>
+    </node>
+  </group>
+
+</launch>

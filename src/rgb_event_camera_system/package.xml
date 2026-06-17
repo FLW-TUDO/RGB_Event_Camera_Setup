@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>rgb_event_camera_system</name>
+  <version>1.0.0</version>
+  <description>
+    Launch files, recording scripts, and visualization tools for a synchronized
+    RGB + stereo event camera system (IDS UI304xCP-C + 2x DVXplorer) under ROS Noetic.
+  </description>
+
+  <maintainer email="lokeshwaran.manohar@tu-dortmund.de">Lokeshwaran Manohar</maintainer>
+  <license>MIT</license>
+
+  <url type="repository">https://github.com/FLW-TUDO/RGB_Event_Camera_Setup</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>rosbag</exec_depend>
+  <exec_depend>rviz</exec_depend>
+  <exec_depend>image_view</exec_depend>
+  <exec_depend>vrpn_client_ros</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>rospy</exec_depend>
+
+  <!-- External camera driver packages (must be built separately) -->
+  <!-- <exec_depend>ids_cam_driver</exec_depend> -->
+  <!-- <exec_depend>dvxplorer_ros_driver</exec_depend> -->
+  <!-- <exec_depend>dvs_renderer</exec_depend> -->
+
+</package>

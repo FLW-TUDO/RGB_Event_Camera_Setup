@@ -1,0 +1,54 @@
+<launch>
+  <!-- Recording: RGB + left event camera + Vicon, optional rviz, rosbag record -->
+  <!-- Usage: roslaunch rgb_event_camera_system record.launch exposure_us:=5000 [rviz:=true] [bag_name:=test] [duration:=30] -->
+
+  <arg name="exposure_us" default="5000" doc="RGB exposure in microseconds (1000=1ms, 5000=5ms, 10000=10ms, 20000=20ms)"/>
+  <arg name="bag_name"    default="recording"/>
+  <arg name="duration"    default="0"    doc="Seconds to record (0 = unlimited, stop with Ctrl-C)"/>
+  <arg name="bag_dir"     default="$(optenv BAG_DIR /bags)"/>
+  <arg name="rviz"        default="false" doc="Launch rviz for live visualization (requires DISPLAY)"/>
+  <arg name="record"      default="true"  doc="Start rosbag recorder immediately (false = cameras only)"/>
+  <arg name="vicon_server" default="192.168.2.221" doc="Vicon Tracker IP (VRPN port 3883)"/>
+
+  <!-- IDS Peak SDK GenTL producer path -->
+  <env name="GENICAM_GENTL64_PATH" value="/usr/lib/ids/cti"/>
+
+  <!-- RGB camera -->
+  <node name="rgb_cam" pkg="ids_cam_driver" type="ids.py" output="screen">
+    <param name="width"       value="640"/>
+    <param name="height"      value="480"/>
+    <param name="exposure_us" value="$(arg exposure_us)"/>
+  </node>
+
+  <!-- Left DVXplorer event camera (master clock) -->
+  <node ns="dvxplorer_left" name="dvxplorer_ros_driver"
+        pkg="dvxplorer_ros_driver" type="dvxplorer_ros_driver" output="screen">
+    <param name="serial_number"          type="str" value="DXA00420"/>
+    <param name="master"                 value="True"/>
+    <param name="reset_timestamps_delay" value="2.0"/>
+  </node>
+
+  <!-- Event renderer: events -> /dvs_rendering_left image topic -->
+  <node name="dvs_renderer_left" pkg="dvs_renderer" type="dvs_renderer" output="log">
+    <param name="display_method" value="red-blue"/>
+    <remap from="events"        to="/dvxplorer_left/events"/>
+    <remap from="dvs_rendering" to="/dvs_rendering_left"/>
+  </node>
+
+  <!-- Bag recorder -->
+  <node if="$(arg record)" pkg="rosbag" type="record" name="rosbag_record" output="screen"
+        args="--output-name=$(arg bag_dir)/$(arg bag_name)
+              --buffsize=1024
+              --lz4
+              /rgb/image_raw
+              /dvxplorer_left/events
+              /dvxplorer_left/imu
+              /vicon/eventrecrc/pose
+              /vicon/muroKopf/pose
+              /rosout"/>
+
+  <!-- RViz: only when rviz:=true -->
+  <node if="$(arg rviz)" name="rviz" pkg="rviz" type="rviz" output="screen"
+        args="-d $(find rgb_event_camera_system)/rviz/wp1.rviz"/>
+
+</launch>
