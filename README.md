@@ -248,6 +248,14 @@ This repository provides the **generic setup, launch, and recording infrastructu
 
 ---
 
+## Contributors
+
+- Lokeshwaran Manohar — current maintainer
+- Shrutarv Awasthi
+- Anas Gouda
+
+---
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
