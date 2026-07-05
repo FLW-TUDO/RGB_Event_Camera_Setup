@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Extract RGB frames, event camera data, and Vicon pose from a ROS bag.
+Extract RGB frames and event camera data from a ROS bag.
 
 Requires: rosbag, numpy, cv2 (opencv-python)
 Run inside a ROS environment: source /opt/ros/noetic/setup.bash
@@ -11,7 +11,6 @@ Usage:
 """
 
 import argparse
-import json
 import time
 from pathlib import Path
 
@@ -22,14 +21,13 @@ import rosbag
 
 def parse_args():
     p = argparse.ArgumentParser(
-        description="Extract bag to RGB frames, event NPYs, and Vicon pose JSON"
+        description="Extract bag to RGB frames and event NPYs"
     )
     p.add_argument("--bag", required=True, help="Path to .bag file")
     p.add_argument("--out", required=True, help="Output directory")
     p.add_argument("--rgb-topic",   default="/rgb/image_raw")
     p.add_argument("--left-topic",  default="/dvxplorer_left/events")
     p.add_argument("--right-topic", default="/dvxplorer_right/events")
-    p.add_argument("--vicon-topic", default="/vicon/eventrecrc/pose")
     p.add_argument("--no-srgb",    action="store_true", help="Skip linear->sRGB gamma correction")
     p.add_argument("--event-side", choices=["both", "left", "right"], default="both")
     return p.parse_args()
@@ -94,34 +92,6 @@ def extract_events(bag: rosbag.Bag, topic: str, out_dir: Path) -> int:
     return count
 
 
-def extract_vicon(bag: rosbag.Bag, topic: str, out_path: Path) -> int:
-    """
-    Save pose as JSON keyed by nanosecond timestamp string.
-
-    Handles two message types:
-      - geometry_msgs/PoseStamped    (vrpn_client_ros)
-      - geometry_msgs/TransformStamped (vicon_bridge)
-    """
-    vicon_data = {}
-    for _, msg, t in bag.read_messages(topics=[topic]):
-        ts = str(t.to_nsec())
-        if hasattr(msg, 'pose'):
-            translation = [msg.pose.position.x, msg.pose.position.y, msg.pose.position.z]
-            rotation = [msg.pose.orientation.x, msg.pose.orientation.y,
-                        msg.pose.orientation.z, msg.pose.orientation.w]
-        else:
-            translation = [msg.transform.translation.x,
-                           msg.transform.translation.y,
-                           msg.transform.translation.z]
-            rotation = [msg.transform.rotation.x, msg.transform.rotation.y,
-                        msg.transform.rotation.z, msg.transform.rotation.w]
-        vicon_data[ts] = {'translation': translation, 'rotation': rotation, 'timestamp': ts}
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(out_path, 'w') as f:
-        json.dump(vicon_data, f, indent=2)
-    return len(vicon_data)
-
-
 def main():
     args = parse_args()
     out = Path(args.out)
@@ -142,10 +112,6 @@ def main():
         t0 = time.time()
         n_right = extract_events(bag, args.right_topic, out / "events_right")
         print(f"  Events right: {n_right:6d} msgs     ({time.time() - t0:.1f}s)")
-
-    t0 = time.time()
-    n_vicon = extract_vicon(bag, args.vicon_topic, out / "vicon_pose.json")
-    print(f"  Vicon poses:  {n_vicon:6d}          ({time.time() - t0:.1f}s)")
 
     bag.close()
     print(f"\nDone. Output: {out.resolve()}")

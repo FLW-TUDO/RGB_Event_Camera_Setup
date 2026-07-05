@@ -34,7 +34,7 @@ roslaunch rgb_event_camera_system RGB_event_cam_stereo.launch view:=true
 
 ## Recording
 
-Use `record.sh` to record a bag with cameras and optional Vicon:
+Use `record.sh` to record a bag from the cameras:
 
 ```bash
 # Native
@@ -72,7 +72,6 @@ Bags are saved to `$HOME/bags/` (native) or `/bags/` (Docker).
 | `/dvxplorer_left/imu` | IMU data |
 | `/dvxplorer_right/events` | Right event stream (Docker script, if connected) |
 | `/dvxplorer_right/imu` | Right IMU (Docker script, if connected) |
-| `/vicon/.../pose` | Vicon poses (if enabled) |
 
 > `dvs_rendering_left` is not recorded — it is re-rendered on playback by `visualize_bag.sh`.
 

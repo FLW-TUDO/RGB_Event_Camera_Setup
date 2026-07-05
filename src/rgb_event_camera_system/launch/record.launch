@@ -1,5 +1,5 @@
 <launch>
-  <!-- Recording: RGB + left event camera + Vicon, optional rviz, rosbag record -->
+  <!-- Recording: RGB + left event camera, optional rviz, rosbag record -->
   <!-- Usage: roslaunch rgb_event_camera_system record.launch exposure_us:=5000 [rviz:=true] [bag_name:=test] [duration:=30] -->
 
   <arg name="exposure_us" default="5000" doc="RGB exposure in microseconds (1000=1ms, 5000=5ms, 10000=10ms, 20000=20ms)"/>
@@ -8,7 +8,6 @@
   <arg name="bag_dir"     default="$(optenv BAG_DIR /bags)"/>
   <arg name="rviz"        default="false" doc="Launch rviz for live visualization (requires DISPLAY)"/>
   <arg name="record"      default="true"  doc="Start rosbag recorder immediately (false = cameras only)"/>
-  <arg name="vicon_server" default="192.168.2.221" doc="Vicon Tracker IP (VRPN port 3883)"/>
 
   <!-- IDS Peak SDK GenTL producer path -->
   <env name="GENICAM_GENTL64_PATH" value="/usr/lib/ids/cti"/>
@@ -43,8 +42,6 @@
               /rgb/image_raw
               /dvxplorer_left/events
               /dvxplorer_left/imu
-              /vicon/eventrecrc/pose
-              /vicon/muroKopf/pose
               /rosout"/>
 
   <!-- RViz: only when rviz:=true -->

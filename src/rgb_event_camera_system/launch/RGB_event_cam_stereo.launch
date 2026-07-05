@@ -6,6 +6,9 @@
   <arg name="rgb_gain"        default="1.0"   doc="RGB camera gain (1.0–24.0)"/>
   <arg name="rgb_gamma"       default="2.2"   doc="RGB camera gamma (1.0=linear/dark, 2.2=sRGB-like/natural)"/>
 
+  <!-- DVXplorer bias sensitivity: 0=Very_Low 1=Low 2=Default 3=High 4=Very_High -->
+  <arg name="bias_sensitivity" default="2"/>
+
   <!-- Set to false to skip cameras that are not plugged in -->
   <arg name="rgb"       default="true"/>
   <arg name="left_dvx"  default="true"/>
@@ -35,6 +38,7 @@
       <param name="serial_number"          type="str" value="DXA00420"/>
       <param name="master"                 value="True"/>
       <param name="reset_timestamps_delay" value="2.0"/>
+      <param name="bias_sensitivity"       value="$(arg bias_sensitivity)"/>
     </node>
 
     <node name="dvs_renderer_left" pkg="dvs_renderer" type="dvs_renderer">
@@ -54,8 +58,9 @@
   <group if="$(arg right_dvx)">
     <node ns="dvxplorer_right" name="dvxplorer_ros_driver"
           pkg="dvxplorer_ros_driver" type="dvxplorer_ros_driver" output="screen">
-      <param name="serial_number" type="str" value="DXA00247"/>
-      <param name="master"        value="False"/>
+      <param name="serial_number"    type="str" value="DXA00247"/>
+      <param name="master"           value="False"/>
+      <param name="bias_sensitivity" value="$(arg bias_sensitivity)"/>
       <remap from="reset_timestamps" to="/dvxplorer_left/reset_timestamps"/>
     </node>
 

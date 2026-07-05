@@ -8,7 +8,6 @@ Launch files, recording scripts, calibration workflow, and setup documentation f
 |-----------|-------|
 | RGB camera | IDS UI304xCP-C |
 | Event cameras | 2 x iniVation DVXplorer (stereo pair) |
-| Motion capture (optional) | Vicon Tracker via VRPN |
 
 ## Platform Support
 
@@ -104,16 +103,16 @@ roslaunch rgb_event_camera_system RGB_event_cam_stereo.launch view:=false
 # Custom exposure and gain
 roslaunch rgb_event_camera_system RGB_event_cam_stereo.launch \
     rgb_exposure_us:=20000 rgb_gain:=1.5 view:=true
+
+# Event-camera bias sensitivity (0=Very_Low … 4=Very_High, default 2)
+roslaunch rgb_event_camera_system RGB_event_cam_stereo.launch bias_sensitivity:=3
 ```
 
-### Launch Vicon Motion Capture
+To check exposure/gain/bias interactively without recording (auto-detects which
+cameras are plugged in):
 
 ```bash
-# Default server IP (change to match your Vicon Tracker)
-roslaunch rgb_event_camera_system vicon.launch
-
-# Custom server IP
-roslaunch rgb_event_camera_system vicon.launch server:=192.168.1.100
+rosrun rgb_event_camera_system preview_exposure.sh [rgb_exposure_ms] [rgb_gain] [--bias 0-4]
 ```
 
 ### Check Topics
@@ -126,7 +125,6 @@ rostopic list
 #   /dvxplorer_left/imu         — Left DVX IMU
 #   /dvxplorer_right/events     — Right event camera
 #   /dvxplorer_right/imu        — Right DVX IMU
-#   /vicon/.../pose             — Vicon poses (if enabled)
 
 rostopic hz /rgb/image_raw /dvxplorer_left/events
 ```
@@ -170,7 +168,6 @@ Bags are saved to `~/bags/` on the host (native) or `/bags/` in the container.
 | `/dvxplorer_left/imu` | `sensor_msgs/Imu` | Left DVX IMU |
 | `/dvxplorer_right/events` | `dvs_msgs/EventArray` | Right event camera |
 | `/dvxplorer_right/imu` | `sensor_msgs/Imu` | Right DVX IMU |
-| `/vicon/.../pose` | `geometry_msgs/PoseStamped` | Vicon mocap (100 Hz, if enabled) |
 
 ---
 

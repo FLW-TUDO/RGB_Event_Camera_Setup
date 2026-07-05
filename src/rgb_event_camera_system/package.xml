@@ -17,7 +17,6 @@
   <exec_depend>rosbag</exec_depend>
   <exec_depend>rviz</exec_depend>
   <exec_depend>image_view</exec_depend>
-  <exec_depend>vrpn_client_ros</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>

@@ -16,6 +16,7 @@ install(DIRECTORY rviz/
 catkin_install_python(PROGRAMS
   scripts/export_bag_videos.py
   scripts/extract_bag.py
+  scripts/extract_rgb_img_from_bag.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -25,5 +26,6 @@ install(PROGRAMS
   scripts/visualize_bag.sh
   scripts/export_bag_video.sh
   scripts/preview_jetson.sh
+  scripts/preview_exposure.sh
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

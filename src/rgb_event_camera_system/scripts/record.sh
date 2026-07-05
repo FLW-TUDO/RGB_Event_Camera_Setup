@@ -9,7 +9,6 @@ set -e
 EXPOSURE_MS="${1:-5}"
 DURATION_S="${2:-0}"
 LABEL="${3:-}"
-VICON_IP="${VICON_IP:-192.168.2.221}"
 
 EXPOSURE_US=$(( EXPOSURE_MS * 1000 ))
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
@@ -28,7 +27,6 @@ else
   echo "  Duration  : ${DURATION_S}s"
 fi
 echo "  Bag file  : ${BAG_DIR}/${BAG_NAME}.bag"
-echo "  Vicon     : ${VICON_IP} (VRPN port 3883)"
 echo "============================================"
 
 # Source ROS — adjust these paths if your workspaces differ
@@ -46,11 +44,6 @@ roscore &
 ROSCORE_PID=$!
 sleep 2
 
-echo "Starting Vicon bridge (VRPN → ${VICON_IP}:3883)..."
-roslaunch rgb_event_camera_system vicon.launch server:="$VICON_IP" &
-VICON_PID=$!
-sleep 3
-
 echo "Starting cameras (stream only, not recording yet)..."
 roslaunch rgb_event_camera_system record.launch \
     exposure_us:="$EXPOSURE_US" \
@@ -66,7 +59,6 @@ cleanup() {
   echo "Stopping..."
   kill $BAG_PID 2>/dev/null || true
   kill $LAUNCH_PID 2>/dev/null || true
-  kill $VICON_PID 2>/dev/null || true
   sleep 2
   kill $ROSCORE_PID 2>/dev/null || true
   wait 2>/dev/null || true
@@ -87,22 +79,12 @@ echo " to start recording."
 echo "============================================"
 read -r
 
-echo "Checking Vicon topics..."
-VICON_TOPIC=$(rostopic list 2>/dev/null | grep "^/vicon/" | head -5)
-if [ -z "$VICON_TOPIC" ]; then
-  echo "WARNING: No /vicon/* topics found. Check Vicon Tracker connection."
-  echo "Press ENTER to record anyway (mocap will be missing), or Ctrl-C to abort."
-  read -r
-else
-  echo "Vicon topics active: ${VICON_TOPIC}"
-fi
-
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 BAG_NAME="rgb${EXPOSURE_MS}ms_${TIMESTAMP}"
 [ -n "$LABEL" ] && [ "$LABEL" != "--rviz" ] && BAG_NAME="rgb${EXPOSURE_MS}ms_${LABEL}_${TIMESTAMP}"
 echo "Recording to: ${BAG_DIR}/${BAG_NAME}.bag"
 
-ROSBAG_ARGS="--output-name=${BAG_DIR}/${BAG_NAME} --buffsize=1024 --lz4 /rgb/image_raw /dvxplorer_left/events /dvxplorer_left/imu /vicon/eventrecrc/pose /rosout"
+ROSBAG_ARGS="--output-name=${BAG_DIR}/${BAG_NAME} --buffsize=1024 --lz4 /rgb/image_raw /dvxplorer_left/events /dvxplorer_left/imu /rosout"
 if [ "$DURATION_S" -gt 0 ]; then
   ROSBAG_ARGS="$ROSBAG_ARGS --duration=$DURATION_S"
 fi

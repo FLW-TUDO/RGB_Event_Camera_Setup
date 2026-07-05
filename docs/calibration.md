@@ -8,7 +8,7 @@ Camera mapping:
 - **cam2**: right event camera (reconstructed frames)
 
 Tools:
-- **e2calib** — converts event streams to intensity-like frames
+- **e2calib** ([uzh-rpg/e2calib](https://github.com/uzh-rpg/e2calib)) — converts event streams to intensity-like frames
 - **Kalibr** — multi-camera calibration
 
 ---
@@ -16,7 +16,7 @@ Tools:
 ## Prerequisites
 
 - ROS Noetic sourced (native or Docker)
-- `e2calib` cloned at `~/event_camera/e2calib`
+- `e2calib` cloned at `~/event_camera/e2calib` (`git clone https://github.com/uzh-rpg/e2calib.git ~/event_camera/e2calib`)
 - Kalibr Docker image built (`kalibr:latest`) or Kalibr workspace sourced
 - Checkerboard target YAML (e.g., `checkerboard_8x6_5cm.yaml`)
 
@@ -49,17 +49,19 @@ rosbag record \
 
 ## Step 2 — Convert Event Topics to H5
 
+> If you have a ROS2 workspace sourced (e.g. ROS2 Humble + colcon workspaces), its packages get prepended to `PYTHONPATH` and shadow the pip-installed ROS1 `rospy`/`rosbag` that `convert.py` needs (specifically `rosgraph_msgs`, causing `ImportError: cannot import name 'Log'`). Clear `PYTHONPATH` for this command to avoid the conflict. `convert.py` also needs `tqdm` (`pip3 install --user tqdm`) even though it's not in `requirements.txt`.
+
 ```bash
 cd ~/event_camera/e2calib
 
-python python/convert.py \
-  --input_file $CALIB_DIR/events_only.bag \
+PYTHONPATH= python3 python/convert.py \
   --topic /dvxplorer_left/events \
+  $CALIB_DIR/events_only.bag \
   --output_file $CALIB_DIR/events_left.h5
 
-python python/convert.py \
-  --input_file $CALIB_DIR/events_only.bag \
+PYTHONPATH= python3 python/convert.py \
   --topic /dvxplorer_right/events \
+  $CALIB_DIR/events_only.bag \
   --output_file $CALIB_DIR/events_right.h5
 ```
 
@@ -92,21 +94,25 @@ mv $CALIB_DIR/reconstructed_event_images/e2calib $CALIB_DIR/reconstructed_event_
 ## Step 4 — Extract RGB Frames
 
 ```bash
-python Annotation/calibration_rgb_event_cameras_extrinsics/extract_rgb_img_from_bag.py \
+PYTHONPATH= python3 scripts/extract_rgb_img_from_bag.py \
+  --topic /rgb/image_raw \
   --bag $CALIB_DIR/events_only.bag \
-  --output $CALIB_DIR/reconstructed_event_images/cam0
+  --output_file $CALIB_DIR/reconstructed_event_images/cam0
 ```
+
+> Same `PYTHONPATH=` rule as event conversion (see [e2calib docs](https://github.com/uzh-rpg/e2calib)): needed if a ROS2 workspace is sourced, so pip's ROS1 `rosbag` loads instead of colliding with ROS2 packages. Run outside any conda env — this needs the system `rosbag`/`cv2`, not conda packages.
 
 ---
 
 ## Step 5 — Create Image Bag for Kalibr
 
-```bash
-source ~/kalibr_workspace/devel/setup.bash
+Best done inside the Kalibr Docker container rather than a native Kalibr workspace — avoids ROS distro/dependency conflicts entirely.
 
-rosrun kalibr kalibr_bagcreater \
-  --folder $CALIB_DIR/reconstructed_event_images/ \
-  --output-bag $CALIB_DIR/images.bag
+```bash
+docker run -it --rm -v $CALIB_DIR/reconstructed_event_images:/data kalibr:latest
+
+# Inside the container:
+rosrun kalibr kalibr_bagcreater --folder /data/ --output-bag /data/images.bag
 ```
 
 The folder must contain subfolders named `cam0/`, `cam1/`, `cam2/` with images inside.
@@ -115,12 +121,14 @@ The folder must contain subfolders named `cam0/`, `cam1/`, `cam2/` with images i
 
 ## Step 6 — Run Kalibr Calibration
 
+Same container, with the checkerboard YAML also mounted in (or copied into `$CALIB_DIR` beforehand so it's under `/data`):
+
 ```bash
 rosrun kalibr kalibr_calibrate_cameras \
-  --target $CALIB_DIR/../checkerboard_8x6_5cm.yaml \
+  --target /data/checkerboard_8x6_5cm.yaml \
   --models pinhole-radtan pinhole-radtan pinhole-radtan \
   --topics /cam0/image_raw /cam1/image_raw /cam2/image_raw \
-  --bag $CALIB_DIR/images.bag \
+  --bag /data/images.bag \
   --bag-freq 5.0 \
   --verbose
 ```

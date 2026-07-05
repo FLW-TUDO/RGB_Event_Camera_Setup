@@ -12,7 +12,6 @@
 #
 # RGB_EXPOSURE_MS env var overrides the positional arg if set.
 # RGB_GAIN env var sets camera gain (1.0-24.0, default 1.0).
-# VICON_IP env var enables Vicon tracking (set in run_camera_driver.sh).
 
 set -e
 
@@ -55,9 +54,6 @@ echo "  Bag file  : ${BAG_DIR}/${BAG_NAME}.bag"
 echo "  RGB camera: ${RGB_CONNECTED}"
 echo "  Left DVX  : ${LEFT_DVX}  (DXA00420)"
 echo "  Right DVX : ${RIGHT_DVX} (DXA00247)"
-[ -n "$VICON_IP" ] \
-    && echo "  Vicon     : ${VICON_IP} (VRPN port 3883)" \
-    || echo "  Vicon     : disabled (set VICON_IP to enable)"
 echo "============================================"
 
 if [ "$LEFT_DVX" = false ] && [ "$RGB_CONNECTED" = false ]; then
@@ -72,13 +68,6 @@ echo "Starting roscore..."
 roscore &
 ROSCORE_PID=$!
 sleep 2
-
-if [ -n "$VICON_IP" ]; then
-    echo "Starting Vicon bridge (VRPN -> ${VICON_IP}:3883)..."
-    roslaunch rgb_event_camera_system vicon.launch server:="$VICON_IP" &
-    VICON_PID=$!
-    sleep 3
-fi
 
 echo "Starting cameras..."
 roslaunch rgb_event_camera_system RGB_event_cam_stereo.launch \
@@ -95,7 +84,6 @@ cleanup() {
     echo "Stopping..."
     kill $BAG_PID 2>/dev/null || true
     kill $LAUNCH_PID 2>/dev/null || true
-    [ -n "${VICON_PID:-}" ] && kill $VICON_PID 2>/dev/null || true
     sleep 2
     kill $ROSCORE_PID 2>/dev/null || true
     wait 2>/dev/null || true
@@ -115,21 +103,6 @@ echo " Cameras ready. Press ENTER to start recording."
 echo "============================================"
 read -r
 
-if [ -n "$VICON_IP" ]; then
-    echo "Checking Vicon topics..."
-    VICON_TOPIC=$(rostopic list 2>/dev/null | grep "^/vicon/" | head -5)
-    if [ -z "$VICON_TOPIC" ]; then
-        echo "WARNING: No /vicon/* topics found."
-        echo "         Check that Vicon objects are defined in Vicon Tracker"
-        echo "         and that the VRPN connection on port 3883 succeeded."
-        echo ""
-        echo "Press ENTER to record anyway (mocap will be missing), or Ctrl-C to abort."
-        read -r
-    else
-        echo "Vicon topics active: ${VICON_TOPIC}"
-    fi
-fi
-
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 BAG_NAME="rgb${RGB_EXPOSURE_MS}ms_${TIMESTAMP}"
 [ -n "$LABEL" ] && BAG_NAME="rgb${RGB_EXPOSURE_MS}ms_${LABEL}_${TIMESTAMP}"
@@ -139,7 +112,6 @@ TOPICS="/rosout"
 [ "$RGB_CONNECTED" = true ]  && TOPICS="$TOPICS /rgb/image_raw"
 [ "$LEFT_DVX" = true ]       && TOPICS="$TOPICS /dvxplorer_left/events /dvxplorer_left/imu"
 [ "$RIGHT_DVX" = true ]      && TOPICS="$TOPICS /dvxplorer_right/events /dvxplorer_right/imu"
-[ -n "$VICON_IP" ]           && TOPICS="$TOPICS /vicon/eventrecrc/pose /vicon/muroKopf/pose /vicon/eventrig/pose"
 
 ROSBAG_ARGS="--output-name=${BAG_DIR}/${BAG_NAME} --buffsize=1024 --lz4 ${TOPICS}"
 [ "$DURATION_S" -gt 0 ] && ROSBAG_ARGS="$ROSBAG_ARGS --duration=$DURATION_S"
